@@ -5,6 +5,10 @@ import sys
 WIDTH, HEIGHT = 800, 600
 FPS = 60
 
+# Logo display settings
+LOGO_DURATION = FPS * 2  # total frames for logo screen
+LOGO_FADE_STEP = 255 / (LOGO_DURATION / 2)
+
 # States
 LOGO = 'logo'
 TITLE = 'title'
@@ -18,17 +22,20 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 48)
 
 state = LOGO
-logo_timer = 120  # frames to display the logo
+logo_timer = LOGO_DURATION
+logo_alpha = 0
 
 
-def draw_text(text, y):
+def draw_text(text, y, alpha=None):
     rendered = font.render(text, True, (255, 255, 255))
+    if alpha is not None:
+        rendered.set_alpha(int(alpha))
     rect = rendered.get_rect(center=(WIDTH // 2, y))
     screen.blit(rendered, rect)
 
-def draw_logo():
+def draw_logo(alpha):
     screen.fill((0, 0, 0))
-    draw_text('ShibaInu', HEIGHT // 2)
+    draw_text('ShibaInu', HEIGHT // 2, alpha)
 
 def draw_title():
     screen.fill((0, 0, 128))
@@ -66,7 +73,11 @@ while running:
                     state = TITLE
 
     if state == LOGO:
-        draw_logo()
+        draw_logo(logo_alpha)
+        if logo_timer > LOGO_DURATION / 2:
+            logo_alpha = min(255, logo_alpha + LOGO_FADE_STEP)
+        else:
+            logo_alpha = max(0, logo_alpha - LOGO_FADE_STEP)
         logo_timer -= 1
         if logo_timer <= 0:
             state = TITLE
