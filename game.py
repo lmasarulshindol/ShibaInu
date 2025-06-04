@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 
 # Screen dimensions
 WIDTH, HEIGHT = 800, 600
@@ -34,14 +35,19 @@ def draw_title():
     screen.fill((0, 0, 128))
     draw_text('ShibaInu Game', HEIGHT // 2 - 50)
     draw_text('S: Start Game', HEIGHT // 2)
-    draw_text('P: Settings', HEIGHT // 2 + 50)
-    draw_text('Q: Quit', HEIGHT // 2 + 100)
+    draw_text('H: Hard Mode', HEIGHT // 2 + 50)
+    draw_text('P: Settings', HEIGHT // 2 + 100)
+    draw_text('Q: Quit', HEIGHT // 2 + 150)
 
 GROUND_Y = HEIGHT - 100
 PLAYER_SPEED = 5
 JUMP_SPEED = -12
 GRAVITY = 0.6
 PLAYER_MAX_HP = 3
+SPAWN_INTERVAL = 120
+
+spawn_timer = 0
+hard_mode = False
 
 player_rect = pygame.Rect(50, GROUND_Y - 50, 50, 50)
 player_vel_y = 0
@@ -64,8 +70,8 @@ def damage_player():
         on_ground = True
 
 
-def init_stage():
-    global player_rect, player_vel_y, on_ground, stage_cleared, player_hp, enemy_rects
+def init_stage(hard=False):
+    global player_rect, player_vel_y, on_ground, stage_cleared, player_hp, enemy_rects, spawn_timer, hard_mode
     player_rect.x = 50
     player_rect.y = GROUND_Y - 50
     player_vel_y = 0
@@ -73,10 +79,12 @@ def init_stage():
     stage_cleared = False
     player_hp = PLAYER_MAX_HP
     enemy_rects = [pygame.Rect(300, GROUND_Y - 50, 50, 50)]
+    spawn_timer = 0
+    hard_mode = hard
 
 
 def update_stage(keys):
-    global player_vel_y, on_ground, stage_cleared, state, enemy_rects
+    global player_vel_y, on_ground, stage_cleared, state, enemy_rects, hard_mode
 
     prev_rect = player_rect.copy()
 
@@ -99,6 +107,14 @@ def update_stage(keys):
 
     player_rect.x = max(0, min(WIDTH - player_rect.width, player_rect.x))
 
+    if hard_mode and not stage_cleared:
+        global spawn_timer
+        spawn_timer += 1
+        if spawn_timer >= SPAWN_INTERVAL:
+            spawn_timer = 0
+            x = random.randint(50, WIDTH - 100)
+            enemy_rects.append(pygame.Rect(x, GROUND_Y - 50, 50, 50))
+
     if player_rect.colliderect(goal_rect):
         stage_cleared = True
 
@@ -120,7 +136,10 @@ def draw_stage():
     for enemy in enemy_rects:
         pygame.draw.rect(screen, (255, 0, 0), enemy)
     pygame.draw.rect(screen, (255, 215, 0), goal_rect)
-    draw_text('Stage 1-1', 40)
+    if hard_mode:
+        draw_text('Stage 1-1 Hard', 40)
+    else:
+        draw_text('Stage 1-1', 40)
     draw_text(f'HP: {player_hp}', 80)
     if stage_cleared:
         draw_text('Stage Clear! ESC: Title', 100)
@@ -140,6 +159,9 @@ while running:
             if state == TITLE:
                 if event.key == pygame.K_s:
                     init_stage()
+                    state = STAGE1_1
+                elif event.key == pygame.K_h:
+                    init_stage(hard=True)
                     state = STAGE1_1
                 elif event.key == pygame.K_p:
                     state = SETTINGS
