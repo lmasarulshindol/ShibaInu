@@ -37,10 +37,61 @@ def draw_title():
     draw_text('P: Settings', HEIGHT // 2 + 50)
     draw_text('Q: Quit', HEIGHT // 2 + 100)
 
+GROUND_Y = HEIGHT - 100
+PLAYER_SPEED = 5
+JUMP_SPEED = -12
+GRAVITY = 0.6
+
+player_rect = pygame.Rect(50, GROUND_Y - 50, 50, 50)
+player_vel_y = 0
+on_ground = True
+goal_rect = pygame.Rect(WIDTH - 100, GROUND_Y - 50, 50, 50)
+stage_cleared = False
+
+
+def init_stage():
+    global player_rect, player_vel_y, on_ground, stage_cleared
+    player_rect.x = 50
+    player_rect.y = GROUND_Y - 50
+    player_vel_y = 0
+    on_ground = True
+    stage_cleared = False
+
+
+def update_stage(keys):
+    global player_vel_y, on_ground, stage_cleared, state
+
+    if keys[pygame.K_LEFT]:
+        player_rect.x -= PLAYER_SPEED
+    if keys[pygame.K_RIGHT]:
+        player_rect.x += PLAYER_SPEED
+
+    if (keys[pygame.K_SPACE] or keys[pygame.K_UP]) and on_ground:
+        player_vel_y = JUMP_SPEED
+        on_ground = False
+
+    player_vel_y += GRAVITY
+    player_rect.y += player_vel_y
+
+    if player_rect.bottom >= GROUND_Y:
+        player_rect.bottom = GROUND_Y
+        player_vel_y = 0
+        on_ground = True
+
+    player_rect.x = max(0, min(WIDTH - player_rect.width, player_rect.x))
+
+    if player_rect.colliderect(goal_rect):
+        stage_cleared = True
+
+
 def draw_stage():
     screen.fill((0, 128, 0))
-    draw_text('Stage 1-1', HEIGHT // 2 - 50)
-    draw_text('ESC: Back to Title', HEIGHT // 2)
+    pygame.draw.rect(screen, (100, 50, 0), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))
+    pygame.draw.rect(screen, (0, 0, 255), player_rect)
+    pygame.draw.rect(screen, (255, 215, 0), goal_rect)
+    draw_text('Stage 1-1', 40)
+    if stage_cleared:
+        draw_text('Stage Clear! ESC: Title', 100)
 
 def draw_settings():
     screen.fill((128, 0, 0))
@@ -56,12 +107,16 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if state == TITLE:
                 if event.key == pygame.K_s:
+                    init_stage()
                     state = STAGE1_1
                 elif event.key == pygame.K_p:
                     state = SETTINGS
                 elif event.key == pygame.K_q:
                     running = False
-            elif state in (STAGE1_1, SETTINGS):
+            elif state == STAGE1_1:
+                if event.key == pygame.K_ESCAPE:
+                    state = TITLE
+            elif state == SETTINGS:
                 if event.key == pygame.K_ESCAPE:
                     state = TITLE
 
@@ -73,6 +128,8 @@ while running:
     elif state == TITLE:
         draw_title()
     elif state == STAGE1_1:
+        keys = pygame.key.get_pressed()
+        update_stage(keys)
         draw_stage()
     elif state == SETTINGS:
         draw_settings()
