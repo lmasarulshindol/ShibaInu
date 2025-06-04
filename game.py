@@ -48,25 +48,44 @@ GROUND_Y = HEIGHT - 100
 PLAYER_SPEED = 5
 JUMP_SPEED = -12
 GRAVITY = 0.6
+PLAYER_MAX_HP = 3
 
 player_rect = pygame.Rect(50, GROUND_Y - 50, 50, 50)
 player_vel_y = 0
 on_ground = True
 goal_rect = pygame.Rect(WIDTH - 100, GROUND_Y - 50, 50, 50)
 stage_cleared = False
+player_hp = PLAYER_MAX_HP
+enemy_rects = []
+
+
+def damage_player():
+    global player_hp, state, player_vel_y, on_ground
+    player_hp -= 1
+    if player_hp <= 0:
+        state = TITLE
+    else:
+        player_rect.x = 50
+        player_rect.y = GROUND_Y - 50
+        player_vel_y = 0
+        on_ground = True
 
 
 def init_stage():
-    global player_rect, player_vel_y, on_ground, stage_cleared
+    global player_rect, player_vel_y, on_ground, stage_cleared, player_hp, enemy_rects
     player_rect.x = 50
     player_rect.y = GROUND_Y - 50
     player_vel_y = 0
     on_ground = True
     stage_cleared = False
+    player_hp = PLAYER_MAX_HP
+    enemy_rects = [pygame.Rect(300, GROUND_Y - 50, 50, 50)]
 
 
 def update_stage(keys):
-    global player_vel_y, on_ground, stage_cleared, state
+    global player_vel_y, on_ground, stage_cleared, state, enemy_rects
+
+    prev_rect = player_rect.copy()
 
     if keys[pygame.K_LEFT]:
         player_rect.x -= PLAYER_SPEED
@@ -90,13 +109,26 @@ def update_stage(keys):
     if player_rect.colliderect(goal_rect):
         stage_cleared = True
 
+    for enemy in enemy_rects[:]:
+        if player_rect.colliderect(enemy):
+            if prev_rect.bottom <= enemy.top and player_vel_y > 0:
+                enemy_rects.remove(enemy)
+                player_vel_y = JUMP_SPEED
+                player_rect.bottom = enemy.top
+            else:
+                damage_player()
+                break
+
 
 def draw_stage():
     screen.fill((0, 128, 0))
     pygame.draw.rect(screen, (100, 50, 0), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))
     pygame.draw.rect(screen, (0, 0, 255), player_rect)
+    for enemy in enemy_rects:
+        pygame.draw.rect(screen, (255, 0, 0), enemy)
     pygame.draw.rect(screen, (255, 215, 0), goal_rect)
     draw_text('Stage 1-1', 40)
+    draw_text(f'HP: {player_hp}', 80)
     if stage_cleared:
         draw_text('Stage Clear! ESC: Title', 100)
 
